@@ -36,6 +36,17 @@ def weightedInfoPerSymbol(numerator,denominator):
 
 
 
-print(calcEntropy(data))
-#def findSplit():
+
+def findSplit(data):
+    maxIG=[]
+    #sort data by each attribute val
+    for router in range (0,6):
+        sortedRouter=data[data[:, router].argsort()]
+        #need to iterate through sorted column in array to find optimum split for each attribute (store it in smthn)
+    #choose best split out of all attributes
+    print(sortedRouter)
+    
+print(findSplit(data))
+
+
 #def drawTree():
