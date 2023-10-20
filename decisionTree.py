@@ -5,15 +5,18 @@ def getData(path):
     for line in open(path):
         if line.strip() !='':
             row = line.strip().split()
-            #maybe something to make sure data is 8 elemnts long
-            datum = list(map(float,row[:]))
-            data.append(datum)
+            #maybe something to make sure data is 8 elements long DONE
+            assert len(row)==8 , "Error : Input data does not have 8 elements"
+            row_array = list(map(float,row[:]))
+            data.append(row_array)
     data=np.array(data)
     return data
-
-data=getData("C:/Users/james/Desktop/Imperial/year 3/ML/mlcourseworkone/CW1 60012/wifi_db/clean_dataset.txt")
+# use relative file path so its the same for everyone
+data=getData("./CW1 60012/wifi_db/clean_dataset.txt")
 
 #function for random testing
+
+#  TODO : Split data into training data and test data seperate the attributes from the class label same as lab 1
 
 def calcEntropy(data):
     roomNumbers=[]
