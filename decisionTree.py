@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.random import default_rng
 #function to read data
-def getData(path):
+def get_data(path):
     """ Read in the dataset from the specified filepath
 
     Args:
@@ -32,8 +32,8 @@ def getData(path):
 
 
 # use relative file path so its the same for everyone
-data=getData("./CW1 60012/wifi_db/clean_dataset.txt")
-print(data)
+dx,dy=get_data("./CW1 60012/wifi_db/clean_dataset.txt")
+
 #function to split data set
 def split_dataset(x, y, test_proportion, random_generator=default_rng()):
     """ Split dataset into training and test sets, according to the given 
@@ -63,39 +63,37 @@ def split_dataset(x, y, test_proportion, random_generator=default_rng()):
     y_test = y[shuffled_indices[n_train:]]
     return (x_train, x_test, y_train, y_test)
 
+# change data to x,y
+def calc_entropy(x,y):
+    """ Calculates the entropy of the data set given
+    
+    Args:
+        x (np.ndarray): Instances, numpy array with shape (N,K)
+        y (np.ndarray): Class labels, numpy array with shape (N,)
 
+    Returns:
+        float:
+            Entropy of the data set
+    """
+    num_samples=len(x)
+    entropy_array=[] 
+    distinct_rooms, counts = np.unique(y, return_counts=True)
+    entropy_array=[weighted_info_per_symbol(count,num_samples) for count in counts]
+    return sum(entropy_array)
 
-
-def calcEntropy(data):
-    roomNumbers=[]
-    numSamples=len(data)
-    entropyArray=[]
-    for line in data:
-        roomNumbers.append(line[-1])
-    distinctRoomNums=np.unique(roomNumbers)
-    for roomNumber in distinctRoomNums:
-        counter=0
-        for line in data:
-            if roomNumber == line[-1]:
-                counter+=1
-        entropyArray.append(weightedInfoPerSymbol(counter,numSamples))
-    return sum(entropyArray)
-
-def weightedInfoPerSymbol(numerator,denominator):
+def weighted_info_per_symbol(numerator,denominator):
     return (-numerator/denominator)*np.log2(numerator/denominator)
 
+# TODO Finish this function
 
-
-
-
-def findSplit(data):
-    maxIG=[]
+def find_split(data):
+    max_IG=[]
     #sort data by each attribute val
-    for router in range (0,6):
-        sortedRouter=data[data[:, router].argsort()]
+    for router in range(7):
+        sorted_router=data[data[:, router].argsort()]
         #need to iterate through sorted column in array to find optimum split for each attribute (store it in smthn)
     #choose best split out of all attributes
-    print(sortedRouter)
+    print(sorted_router)
     
 # print(findSplit(data))
 
