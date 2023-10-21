@@ -32,7 +32,7 @@ def get_data(path):
 
 
 # use relative file path so its the same for everyone
-dx,dy=get_data("./CW1 60012/wifi_db/clean_dataset.txt")
+dx,dy=get_data("./data/wifi_db/clean_dataset.txt")
 
 #function to split data set
 def split_dataset(x, y, test_proportion, random_generator=default_rng()):
@@ -84,18 +84,118 @@ def calc_entropy(x,y):
 def weighted_info_per_symbol(numerator,denominator):
     return (-numerator/denominator)*np.log2(numerator/denominator)
 
-# TODO Finish this function
+def split_dataset(x, y):
+    """ finds optimal split in dataset and returns the left, right datasets along with splitting attribute and value respectively
 
-def find_split(data):
-    max_IG=[]
-    #sort data by each attribute val
-    for router in range(7):
-        sorted_router=data[data[:, router].argsort()]
-        #need to iterate through sorted column in array to find optimum split for each attribute (store it in smthn)
-    #choose best split out of all attributes
-    print(sorted_router)
+    Args:
+        x (np.ndarray): Instances, numpy array with shape (N,K)
+        y (np.ndarray): Class labels, numpy array with shape (N,)
+
+    Returns:
+        split (dictionary): contains l_dataset_x, l_dataset_y, r_dataset_x, r_dataset_y, value, attribute
+        where
+        l_dataset_x (np.array): Instances, numpy array with shape (M, K) 
+        l_dataset_y (np.array): Class labels, numpy array with shape (M, )
+        r_dataset_x (np.array): Instances, numpy array with shape (N-M, K)
+        r_dataset_x (np.array): Class labels, numpy array with shape (N-M, )
+        value (int): splitting value of continuos 
+        attribute (int):
+    """
+
+    """"
+    ___________________________________
+    | x1 | x2 | x3 | x4 | x5 | x6 | x7 |
+    ___________________________________
+    | . | .  | .  | .  |  . | .  |  . |
+    ___________________________________ 
     
-# print(findSplit(data))
+    Loop through each column of array x. Every column is a different attribute. Should loop 7 times for every router
+        Sort rows of column
+            For each sorted column, loop through every row starting from 1 to n-1
+                Compute information gain for current data split
+                    If greater than current information gain
+                        Update index, attribute and max information gain variables
+                    Otherwise
+                        Continue 
+    Return (attribute, index/value)
+    
+    
+    1) calc entropy of x,y
+    2) repeat for x= 1...7
+    3) extract col x
+    4) sort col x
+    5) repeat for i = 1...1999
+    6) calc entropy for x[col_x<col_x[i]] , y [col_x<col_x[i]]
+    7) calc IG if its greater than current IG update attribute (x) and value col_x[i]
+    
+    
+    """
+    
+    max_IG=0
+    entropy=calc_entropy(x,y)
+    attribute = 0 
+    value = 0 
+    for router in range(np.shape(x)[1]):
+        col_x = x[x[:, router].argsort()][:,router]
+        for row in range(1,np.shape(x)[0]):
+            remainder_left = calc_entropy(x[col_x<col_x[row]],y[col_x<col_x[row]]) * (row/len(y))
+            remiander_right = calc_entropy(x[col_x>=col_x[row]],y[col_x>=col_x[row]]) * (1-(row/len(y)))
+            tmp_IG = entropy - (remainder_left + remiander_right)
+            if tmp_IG > max_IG:
+                max_IG = tmp_IG
+                attribute = router
+                value = col_x[row]
+                
+                
+    split={"l_dataset_x":x[x[:,attribute]<value], "l_dataset_y":y[x[:,attribute]<value],"r_dataset_x":x[x[:,attribute]>=value],"r_dataset_y":y[x[:,attribute]>=value],"value": value,"attribute":attribute}
+    print(split)
+    return split
+
+def decision_tree_learning(x,y,depth=0):
+    """ creates a decision tree recursively
+    
+    Args:
+        x (np.ndarray): Instances, numpy array with shape (N,K)
+        y (np.ndarray): Class labels, numpy array with shape (N,)
+        depth (int): depth of the decision tree
+
+    Returns:
+        root (dictionary):
+            contains left_node,right_node,split_feature,split_value
+        or 
+        root (int)
+            contains final decision
+        
+        depth (int): max depth of the decision tree
+    """
+    node={}
+    if len(np.unique(y))==1:
+        return (np.unique(y)[0], depth)
+    else:
+        split = split_dataset(x, y) # return left and right datasets and attribute and attribute val for the node
+        if len(split["l_dataset_x"]):
+            node["l_branch"], l_depth = decision_tree_learning(split["l_dataset_x"], split["l_dataset_y"], depth+1)
+            node["r_branch"], r_depth = decision_tree_learning(split["r_dataset_x"], split["r_dataset_y"], depth+1)
+            node["split_value"], node["split_attribute"] = split["value"], split["attribute"]
+            return(node, max(l_depth,r_depth))
+            
+root = decision_tree_learning(dx,dy)
+# print(root)
+        
+        
+#     max_IG=[]
+#     #sort data by each attribute val
+#     # max = 0
+#     entropy_dataset = calc_entropy()
+#     for router in range(7):
+#         sorted_router=[x[:, router].argsort()]
+#         # for strength in range(len(sorted_router)-1):
+            
+#         #need to iterate through sorted column in array to find optimum split for each attribute (store it in smthn)
+#     #choose best split out of all attributes
+#     print(sorted_router)
+    
+# # print(findSplit(data))
 
 
 
