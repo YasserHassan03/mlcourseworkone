@@ -132,13 +132,13 @@ def find_split(x, y):
     entropy=calc_entropy(x,y)
     attribute = 0 
     value = 0 
-    for router in range(7):
+    for router in range(np.shape(x)[1]):
         col_x = x[:, router]
         
         s_col_x = x[x[:, router].argsort()][:,router]
         # col_x is a sorted column in x
         
-        for row in range(1,np.shape(x)[0]):
+        for row in range(1,np.shape(x)[0]-1):
             remainder_left = calc_entropy(x[col_x<s_col_x[row]],y[col_x<s_col_x[row]]) * (row/len(y))
             remiander_right = calc_entropy(x[col_x>=s_col_x[row]],y[col_x>=s_col_x[row]]) * (1-(row/len(y)))
             tmp_IG = entropy - (remainder_left + remiander_right)
@@ -175,12 +175,13 @@ def decision_tree_learning(x,y,depth=0):
         return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": np.unique(y)[0],"leaf":True}, depth)
     else:
         split = find_split(x, y) # return left and right datasets and attribute and attribute val for the node
-        if len(split["l_dataset_x"]) and len(split["l_dataset_y"]) and len(split["r_dataset_x"]) and len(split["r_dataset_y"]):
+        if np.shape(split["l_dataset_x"])[0] and np.shape(split["l_dataset_y"])[0] and np.shape(split["r_dataset_x"])[0] and np.shape(split["r_dataset_y"])[0]:
             node["l_branch"], l_depth = decision_tree_learning(split["l_dataset_x"], split["l_dataset_y"], depth+1)
             node["r_branch"], r_depth = decision_tree_learning(split["r_dataset_x"], split["r_dataset_y"], depth+1)
             node["split_value"], node["split_attribute"] = split["value"], split["attribute"]
             node["leaf"] = False
             return(node, max(l_depth,r_depth))
+        print(split)
         return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": None,"leaf":True}, depth) 
 # use relative file path so its the same for everyone
 dx,dy=get_data("./data/wifi_db/clean_dataset.txt")         
