@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.random import default_rng
+from treelib import Node, Tree
 #function to read data
 def get_data(path):
     """ Read in the dataset from the specified filepath
@@ -164,50 +165,42 @@ def decision_tree_learning(x,y,depth=0):
         depth (int): max depth of the decision tree
     """
     node={}
-    if len(np.unique(y))<=1:
-        try:
-            return (np.unique(y)[0], depth)
-        except:
-            return (-1, depth)
+    if len(np.unique(y))==1:
+        return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": np.unique(y)[0]}
+, depth)
     else:
         split = split_dataset(x, y) # return left and right datasets and attribute and attribute val for the node
-        node["l_branch"], l_depth = decision_tree_learning(split["l_dataset_x"], split["l_dataset_y"], depth+1)
-        node["r_branch"], r_depth = decision_tree_learning(split["r_dataset_x"], split["r_dataset_y"], depth+1)
-        node["split_value"], node["split_attribute"] = split["value"], split["attribute"]
-        return (node, max(l_depth,r_depth))
-
+        if len(split["l_dataset_x"]):
+            node["l_branch"], l_depth = decision_tree_learning(split["l_dataset_x"], split["l_dataset_y"], depth+1)
+            node["r_branch"], r_depth = decision_tree_learning(split["r_dataset_x"], split["r_dataset_y"], depth+1)
+            node["split_value"], node["split_attribute"] = split["value"], split["attribute"]
+            return(node, max(l_depth,r_depth))
+        return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None},depth)
 # use relative file path so its the same for everyone
-dx,dy=get_data("./data/wifi_db/clean_dataset.txt")          
+dx,dy=get_data("./data/wifi_db/c_d.txt")          
             
-root = decision_tree_learning(dx,dy)
-print(root)
+root,maxD = decision_tree_learning(dx,dy)
+tree = Tree()
+d=0
+#print(root[0]['split_value'])
+# print(type(root))
+# print(root)
 
-# def p(r,x=1):
-#     if not r:
-#         return
-#     else:
-#         print(str(r["split_value"]))
-#         print(["-"]*x+["-"]*x)
-#         p(r["l_branch"],x+1)
-#         p(r["r_branch"],x+1)
-
-# p(root)
-        
-        
-#     max_IG=[]
-#     #sort data by each attribute val
-#     # max = 0
-#     entropy_dataset = calc_entropy()
-#     for router in range(7):
-#         sorted_router=[x[:, router].argsort()]
-#         # for strength in range(len(sorted_router)-1):
-            
-#         #need to iterate through sorted column in array to find optimum split for each attribute (store it in smthn)
-#     #choose best split out of all attributes
-#     print(sorted_router)
+def b_t(r,d):
     
-# # print(findSplit(data))
+    tree.create_node("split val : " + str(r['split_value']) + " split attribute : " + str(r['split_attribute']), d+1,parent=d) 
+    tree.show()
+    
+    if r['l_branch']:
+        b_t(r["l_branch"],d+1)
+    if r['l_branch']:
+        b_t(r["r_branch"],d+1)
+
+tree.create_node("split val : " + str(root['split_value']) + " split attribute : " + str(root['split_attribute']), 0)  # No parent means its the root node
+b_t(root["l_branch"], 0)
+b_t(root["r_branch"], 0)      
+      
+        
+        
 
 
-
-#def drawTree():
