@@ -2,6 +2,7 @@ import numpy as np
 from numpy.random import default_rng
 from treelib import Node, Tree
 #function to read data
+
 def get_data(path):
     """ Read in the dataset from the specified filepath
 
@@ -20,7 +21,7 @@ def get_data(path):
     y=[]
     
     for line in open(path):
-        if line.strip() !='':
+        if line.strip() != '':
             row = line.strip().split()
             #maybe something to make sure data is 8 elements long DONE
             assert len(row)==8 , "Error : Input data does not have 8 elements"
@@ -80,7 +81,7 @@ def calc_entropy(x,y):
 def weighted_info_per_symbol(numerator,denominator):
     return (-numerator/denominator)*np.log2(numerator/denominator)
 
-def split_dataset(x, y):
+def find_split(x, y):
     """ finds optimal split in dataset and returns the left, right datasets along with splitting attribute and value respectively
 
     Args:
@@ -127,15 +128,19 @@ def split_dataset(x, y):
     
     """
     
-    max_IG=0
+    max_IG = 0
     entropy=calc_entropy(x,y)
     attribute = 0 
     value = 0 
-    for router in range(np.shape(x)[1]):
-        col_x = x[x[:, router].argsort()][:,router]
+    for router in range(7):
+        col_x = x[:, router]
+        
+        s_col_x = x[x[:, router].argsort()][:,router]
+        # col_x is a sorted column in x
+        
         for row in range(1,np.shape(x)[0]):
-            remainder_left = calc_entropy(x[col_x<col_x[row]],y[col_x<col_x[row]]) * (row/len(y))
-            remiander_right = calc_entropy(x[col_x>=col_x[row]],y[col_x>=col_x[row]]) * (1-(row/len(y)))
+            remainder_left = calc_entropy(x[col_x<s_col_x[row]],y[col_x<s_col_x[row]]) * (row/len(y))
+            remiander_right = calc_entropy(x[col_x>=s_col_x[row]],y[col_x>=s_col_x[row]]) * (1-(row/len(y)))
             tmp_IG = entropy - (remainder_left + remiander_right)
             if tmp_IG > max_IG:
                 max_IG = tmp_IG
@@ -166,41 +171,33 @@ def decision_tree_learning(x,y,depth=0):
     """
     node={}
     if len(np.unique(y))==1:
-        return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": np.unique(y)[0]}
-, depth)
+        # building the leaft
+        return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": np.unique(y)[0],"leaf":True}, depth)
     else:
-        split = split_dataset(x, y) # return left and right datasets and attribute and attribute val for the node
-        if len(split["l_dataset_x"]):
+        split = find_split(x, y) # return left and right datasets and attribute and attribute val for the node
+        if len(split["l_dataset_x"]) and len(split["l_dataset_y"]) and len(split["r_dataset_x"]) and len(split["r_dataset_y"]):
             node["l_branch"], l_depth = decision_tree_learning(split["l_dataset_x"], split["l_dataset_y"], depth+1)
             node["r_branch"], r_depth = decision_tree_learning(split["r_dataset_x"], split["r_dataset_y"], depth+1)
             node["split_value"], node["split_attribute"] = split["value"], split["attribute"]
+            node["leaf"] = False
             return(node, max(l_depth,r_depth))
-        return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None},depth)
+        return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": None,"leaf":True}, depth) 
 # use relative file path so its the same for everyone
-dx,dy=get_data("./data/wifi_db/c_d.txt")          
+dx,dy=get_data("./data/wifi_db/clean_dataset.txt")         
             
 root,maxD = decision_tree_learning(dx,dy)
-tree = Tree()
-d=0
-#print(root[0]['split_value'])
-# print(type(root))
-# print(root)
-
-def b_t(r,d):
-    
-    tree.create_node("split val : " + str(r['split_value']) + " split attribute : " + str(r['split_attribute']), d+1,parent=d) 
-    tree.show()
-    
-    if r['l_branch']:
-        b_t(r["l_branch"],d+1)
-    if r['l_branch']:
-        b_t(r["r_branch"],d+1)
-
-tree.create_node("split val : " + str(root['split_value']) + " split attribute : " + str(root['split_attribute']), 0)  # No parent means its the root node
-b_t(root["l_branch"], 0)
-b_t(root["r_branch"], 0)      
       
+def print_tree(root, level=0, prefix="Root: "):
+        if root['leaf']:
+            ret = "\t" * level + prefix +'Final Decision: ' + str(root["Final_Descision"]) + "\n"
+        else: ret = "\t" * level + prefix + " split val : " + str(root['split_value']) + " split attribute : " + str(root['split_attribute'])  + "\n"
+        if root['l_branch']:
+            ret += print_tree(root['l_branch'], level + 1, "L--- ")
+        if root['r_branch']:
+            ret += print_tree(root['r_branch'], level + 1, "R--- ")
+        return ret
         
-        
+tree= print_tree(root)
+print(tree)
 
 
