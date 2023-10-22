@@ -30,11 +30,6 @@ def get_data(path):
     y=np.array(y)
     return (x,y)
 
-
-# use relative file path so its the same for everyone
-dx,dy=get_data("./data/wifi_db/clean_dataset.txt")
-
-#function to split data set
 def split_dataset(x, y, test_proportion, random_generator=default_rng()):
     """ Split dataset into training and test sets, according to the given 
         test set proportion.
@@ -148,7 +143,7 @@ def split_dataset(x, y):
                 
                 
     split={"l_dataset_x":x[x[:,attribute]<value], "l_dataset_y":y[x[:,attribute]<value],"r_dataset_x":x[x[:,attribute]>=value],"r_dataset_y":y[x[:,attribute]>=value],"value": value,"attribute":attribute}
-    print(split)
+    # print(split)
     return split
 
 def decision_tree_learning(x,y,depth=0):
@@ -169,18 +164,34 @@ def decision_tree_learning(x,y,depth=0):
         depth (int): max depth of the decision tree
     """
     node={}
-    if len(np.unique(y))==1:
-        return (np.unique(y)[0], depth)
+    if len(np.unique(y))<=1:
+        try:
+            return (np.unique(y)[0], depth)
+        except:
+            return (-1, depth)
     else:
         split = split_dataset(x, y) # return left and right datasets and attribute and attribute val for the node
-        if len(split["l_dataset_x"]):
-            node["l_branch"], l_depth = decision_tree_learning(split["l_dataset_x"], split["l_dataset_y"], depth+1)
-            node["r_branch"], r_depth = decision_tree_learning(split["r_dataset_x"], split["r_dataset_y"], depth+1)
-            node["split_value"], node["split_attribute"] = split["value"], split["attribute"]
-            return(node, max(l_depth,r_depth))
+        node["l_branch"], l_depth = decision_tree_learning(split["l_dataset_x"], split["l_dataset_y"], depth+1)
+        node["r_branch"], r_depth = decision_tree_learning(split["r_dataset_x"], split["r_dataset_y"], depth+1)
+        node["split_value"], node["split_attribute"] = split["value"], split["attribute"]
+        return (node, max(l_depth,r_depth))
+
+# use relative file path so its the same for everyone
+dx,dy=get_data("./data/wifi_db/clean_dataset.txt")          
             
 root = decision_tree_learning(dx,dy)
-# print(root)
+print(root)
+
+# def p(r,x=1):
+#     if not r:
+#         return
+#     else:
+#         print(str(r["split_value"]))
+#         print(["-"]*x+["-"]*x)
+#         p(r["l_branch"],x+1)
+#         p(r["r_branch"],x+1)
+
+# p(root)
         
         
 #     max_IG=[]
