@@ -1,6 +1,8 @@
 import numpy as np
 from numpy.random import default_rng
 from treelib import Node, Tree
+import matplotlib
+import matplotlib.pyplot as plt
 #function to read data
 
 def get_data(path):
@@ -181,7 +183,7 @@ def decision_tree_learning(x,y,depth=0):
             node["split_value"], node["split_attribute"] = split["value"], split["attribute"]
             node["leaf"] = False
             return(node, max(l_depth,r_depth))
-        print(split)
+        #print(split)
         return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": None,"leaf":True}, depth) 
 # use relative file path so its the same for everyone
 dx,dy=get_data("./data/wifi_db/clean_dataset.txt")         
@@ -201,4 +203,21 @@ def print_tree(root, level=0, prefix="Root: "):
 tree= print_tree(root)
 print(tree)
 
+#print(root)
+def gay_tree(root, max_depth):
+    width=2**max_depth
+    plt.style.use('_mpl-gallery-nogrid')
+    # make data:
+    
+    #x = np.random.uniform(-3, 3, 256)
+    #y = np.random.uniform(-3, 3, 256)
 
+    # plot:
+    fig, ax = plt.subplots()
+
+    #ax.triplot(x, y)
+
+    ax.set(xlim=(0, width), ylim=(-max_depth, 0))
+    plt.text(2,-4,'This text starts at point (2,-4)') # or can use plt.annotate(label,coords,ha='center')
+    plt.show()
+gay_tree(root,maxD)
