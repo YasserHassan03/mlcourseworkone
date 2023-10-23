@@ -134,28 +134,35 @@ def find_split(x, y):
     entropy=calc_entropy(x,y)
     attribute = 0 
     value = 0 
-    for router in range(np.shape(x)[1]):
+    for router in range(7):
         col_x = x[:, router]
-        
         s_col_x = x[x[:, router].argsort()][:,router]
+        s_y= y[x[:, router].argsort()]
         # col_x is a sorted column in x
-        
-        for row in range(1,np.shape(x)[0]-1):
-            remainder_left = calc_entropy(x[col_x<s_col_x[row]],y[col_x<s_col_x[row]]) * (row/len(y))
-            remiander_right = calc_entropy(x[col_x>=s_col_x[row]],y[col_x>=s_col_x[row]]) * (1-(row/len(y)))
-            tmp_IG = entropy - (remainder_left + remiander_right)
-            if tmp_IG > max_IG:
-                max_IG = tmp_IG
-                attribute = router
-                value = col_x[row]
+        # print(np.shape(x)[0]-2)
+        for row in range(len(s_y)-1):
+            # extract two points if they are the same continue   #np.where(v[:-1] != v[1:])[0] to get indices of changes in data
+            # otherwise calc midpoint and try split
+            if s_y[row] != s_y[row+1]:
+                mid = (s_col_x[row] + s_col_x[row+1]) / 2
+                remainder_left = calc_entropy(x[col_x<mid],y[col_x<mid]) * ((row+1)/len(y))
+                remainder_right = calc_entropy(x[col_x>mid],y[col_x>mid]) * (1-((row+1)/len(y)))
+                tmp_IG = entropy - (remainder_left + remainder_right)
+                if tmp_IG > max_IG:
+                    max_IG = tmp_IG
+                    attribute = router
+                    value = mid
+            
+    # x_tmp = x[:,attribute]<value
+    # print(x_tmp)
                 
-                
-    split={"l_dataset_x":x[x[:,attribute]<value], "l_dataset_y":y[x[:,attribute]<value],"r_dataset_x":x[x[:,attribute]>=value],"r_dataset_y":y[x[:,attribute]>=value],"value": value,"attribute":attribute}
+    split={"l_dataset_x":x[x[:,attribute]<value], "l_dataset_y":y[x[:,attribute]<value],"r_dataset_x":x[x[:,attribute]>value],"r_dataset_y":y[x[:,attribute]>value],"value": value,"attribute":attribute}
     # print(split)
     return split
 
 def decision_tree_learning(x,y,depth=0):
     """ creates a decision tree recursively
+    
     
     Args:
         x (np.ndarray): Instances, numpy array with shape (N,K)
@@ -171,23 +178,39 @@ def decision_tree_learning(x,y,depth=0):
         
         depth (int): max depth of the decision tree
     """
-    node={}
-    if len(np.unique(y))==1:
-        # building the leaft
+    # np.concatenate()
+    # print(len(np.unique(y)))
+    # print(y)
+    # print(x.shape)
+    if np.unique(y).shape[0] == 1:
+        # building the leaf
         return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": np.unique(y)[0],"leaf":True}, depth)
     else:
-        split = find_split(x, y) # return left and right datasets and attribute and attribute val for the node
-        if np.shape(split["l_dataset_x"])[0] and np.shape(split["l_dataset_y"])[0] and np.shape(split["r_dataset_x"])[0] and np.shape(split["r_dataset_y"])[0]:
-            node["l_branch"], l_depth = decision_tree_learning(split["l_dataset_x"], split["l_dataset_y"], depth+1)
-            node["r_branch"], r_depth = decision_tree_learning(split["r_dataset_x"], split["r_dataset_y"], depth+1)
-            node["split_value"], node["split_attribute"] = split["value"], split["attribute"]
-            node["leaf"] = False
-            return(node, max(l_depth,r_depth))
-        #print(split)
-        return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": None,"leaf":True}, depth) 
-# use relative file path so its the same for everyone
-dx,dy=get_data("./data/wifi_db/clean_dataset.txt")         
+        split = find_split(x, y)
+        ret_l_depth = depth
+        ret_r_depth = depth
+        # print(split)
+        node = {}
+        # if np.shape(split["l_dataset_x"])[0] and np.shape(split["l_dataset_y"])[0] and np.shape(split["r_dataset_x"])[0] and np.shape(split["r_dataset_y"])[0]:
+                # if np.shape(split["l_dataset_x"])[0]:
+        if (split["l_dataset_x"].shape[0] > 0):
+            node["l_branch"], ret_l_depth = decision_tree_learning(split["l_dataset_x"], split["l_dataset_y"], depth+1)
+            # if np.shape(split["r_dataset_x"])[0]:
+        else:
+            node["l_branch"]=None
+        if (split["r_dataset_x"].shape[0] > 0):
+            node["r_branch"], ret_r_depth = decision_tree_learning(split["r_dataset_x"], split["r_dataset_y"], depth+1)
+        else:
+            node["r_branch"]=None
             
+        node["split_value"], node["split_attribute"] = split["value"], split["attribute"]            
+        node["leaf"] = False
+        
+        return(node, max(ret_l_depth,ret_r_depth))
+        # return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": None,"leaf":True}, depth) 
+
+
+dx,dy=get_data("./data/wifi_db/clean_dataset.txt")                     
 root,maxD = decision_tree_learning(dx,dy)
       
 def print_tree(root, level=0, prefix="Root: "):
@@ -200,7 +223,7 @@ def print_tree(root, level=0, prefix="Root: "):
             ret += print_tree(root['r_branch'], level + 1, "R--- ")
         return ret
         
-tree= print_tree(root)
+tree=print_tree(root)
 print(tree)
 
 #print(root)
@@ -220,4 +243,4 @@ def gay_tree(root, max_depth):
     ax.set(xlim=(0, width), ylim=(-max_depth, 0))
     plt.text(2,-4,'This text starts at point (2,-4)') # or can use plt.annotate(label,coords,ha='center')
     plt.show()
-gay_tree(root,maxD)
+#gay_tree(root,maxD)
