@@ -184,12 +184,12 @@ def decision_tree_learning(x,y,depth=0):
     # print(x.shape)
     if np.unique(y).shape[0] == 1:
         # building the leaf
-        return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": np.unique(y)[0],"leaf":True}, depth)
+        return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Decision": np.unique(y)[0],"leaf":True}, depth)
     else:
         split = find_split(x, y)
         ret_l_depth = depth
         ret_r_depth = depth
-        # print(split)
+        print(depth)
         node = {}
         # if np.shape(split["l_dataset_x"])[0] and np.shape(split["l_dataset_y"])[0] and np.shape(split["r_dataset_x"])[0] and np.shape(split["r_dataset_y"])[0]:
                 # if np.shape(split["l_dataset_x"])[0]:
@@ -207,7 +207,7 @@ def decision_tree_learning(x,y,depth=0):
         node["leaf"] = False
         
         return(node, max(ret_l_depth,ret_r_depth))
-        # return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Descision": None,"leaf":True}, depth) 
+        # return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Decision": None,"leaf":True}, depth) 
 
 
 dx,dy=get_data("./data/wifi_db/clean_dataset.txt")                     
@@ -215,7 +215,7 @@ root,maxD = decision_tree_learning(dx,dy)
       
 def print_tree(root, level=0, prefix="Root: "):
         if root['leaf']:
-            ret = "\t" * level + prefix +'Final Decision: ' + str(root["Final_Descision"]) + "\n"
+            ret = "\t" * level + prefix +'Final Decision: ' + str(root["Final_Decision"]) + "\n"
         else: ret = "\t" * level + prefix + " split val : " + str(root['split_value']) + " split attribute : " + str(root['split_attribute'])  + "\n"
         if root['l_branch']:
             ret += print_tree(root['l_branch'], level + 1, "L--- ")
@@ -223,24 +223,52 @@ def print_tree(root, level=0, prefix="Root: "):
             ret += print_tree(root['r_branch'], level + 1, "R--- ")
         return ret
         
-tree=print_tree(root)
-print(tree)
+#tree=print_tree(root)
+#print(tree)
 
-#print(root)
-def gay_tree(root, max_depth):
-    width=2**max_depth
-    plt.style.use('_mpl-gallery-nogrid')
-    # make data:
-    
-    #x = np.random.uniform(-3, 3, 256)
-    #y = np.random.uniform(-3, 3, 256)
+#function to recursively plot the decision tree
+def plot_decision_tree(node, parent_pos, branch, depth=0):
+    if node is None:
+        return
 
-    # plot:
-    fig, ax = plt.subplots()
+    # Calculate the position for this node
+    # Scale position offset for this data bit of a bodge
+    scale=1/(2**depth)
+    if depth > 5:
+        scale = 1/2**5
+    x = parent_pos[0] + branch * scale
+    y = parent_pos[1] - depth
 
-    #ax.triplot(x, y)
+    if 'Final_Decision' in node:
+        # If the node has a 'Final_Decision' key, it's a leaf node
+        plt.scatter(x, y, s=300, c='green', edgecolor='black', zorder=2)
+        plt.text(x, y, str(node['Final_Decision']), ha='center', va='center', fontsize=10, color='white')
+    else:
+        # Plot the decision node and attribute split
+        plt.scatter(x, y, color='white')
+        plt.text(x, y, ('x' +str(node['split_attribute'])+'<'+str(node['split_value'])), ha='center', va='center', fontsize=7.5, color='black',bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
 
-    ax.set(xlim=(0, width), ylim=(-max_depth, 0))
-    plt.text(2,-4,'This text starts at point (2,-4)') # or can use plt.annotate(label,coords,ha='center')
-    plt.show()
-#gay_tree(root,maxD)
+    # Plot the connecting line from parent to this node
+    if branch == -1:
+        plt.plot([parent_pos[0], x], [parent_pos[1], y], 'b-', zorder=1)
+    else:
+        plt.plot([parent_pos[0], x], [parent_pos[1], y], 'r-', zorder=1)
+
+    # Recursively plot left and right branches
+    if 'l_branch' in node:
+        plot_decision_tree(node['l_branch'], (x, y), -1, depth + 1)
+    if 'r_branch' in node:
+        plot_decision_tree(node['r_branch'], (x, y), 1, depth + 1)
+
+# Create a blank canvas
+plt.figure(figsize=(10,10))
+plt.axis('off')
+
+# Start plotting the decision tree from the root node
+root_node = root
+plot_decision_tree(root_node, (0, 0), 0)
+
+# Show the decision tree
+plt.tight_layout()
+plt.show()
+
