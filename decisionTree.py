@@ -261,7 +261,7 @@ def plot_decision_tree(node, parent_pos, branch, depth=0):
         plot_decision_tree(node['r_branch'], (x, y), 1, depth + 1)
 
 # Create a blank canvas
-plt.figure(figsize=(10,10))
+plt.figure(figsize=(15,10))
 plt.axis('off')
 
 # Start plotting the decision tree from the root node
