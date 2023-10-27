@@ -34,6 +34,7 @@ def get_data(path):
     y=np.array(y)
     return (x,y)
 
+
 def split_dataset(x, y, test_proportion, random_generator=default_rng()):
     """ Split dataset into training and test sets, according to the given 
         test set proportion.
@@ -63,7 +64,7 @@ def split_dataset(x, y, test_proportion, random_generator=default_rng()):
     return (x_train, x_test, y_train, y_test)
 
 # change data to x,y
-def calc_entropy(x,y):
+def calc_entropy(y):
     """ Calculates the entropy of the data set given
     
     Args:
@@ -74,7 +75,7 @@ def calc_entropy(x,y):
         float:
             Entropy of the data set
     """
-    num_samples=len(x)
+    num_samples=len(y)
     entropy_array=[] 
     distinct_rooms, counts = np.unique(y, return_counts=True)
     entropy_array=[weighted_info_per_symbol(count,num_samples) for count in counts]
@@ -131,32 +132,43 @@ def find_split(x, y):
     """
     
     max_IG = 0
-    entropy=calc_entropy(x,y)
+    entropy=calc_entropy(y)
     attribute = 0 
     value = 0 
+    split_index = 0
+    
     for router in range(7):
         col_x = x[:, router]
         s_col_x = x[x[:, router].argsort()][:,router]
         s_y= y[x[:, router].argsort()]
-        # col_x is a sorted column in x
-        # print(np.shape(x)[0]-2)
-        for row in range(len(s_y)-1):
-            # extract two points if they are the same continue   #np.where(v[:-1] != v[1:])[0] to get indices of changes in data
-            # otherwise calc midpoint and try split
+        for row in range(s_y.shape[0]-1):
             if s_y[row] != s_y[row+1]:
                 mid = (s_col_x[row] + s_col_x[row+1]) / 2
-                remainder_left = calc_entropy(x[col_x<mid],y[col_x<mid]) * ((row+1)/len(y))
-                remainder_right = calc_entropy(x[col_x>mid],y[col_x>mid]) * (1-((row+1)/len(y)))
+                
+                l_ds = s_y[:row+1]
+                r_ds = s_y[row+1:]
+                
+                
+                assert r_ds.shape[0] + l_ds.shape[0] == x.shape[0]
+                
+                remainder_left = calc_entropy(l_ds) * (l_ds.shape[0]/len(y))
+                remainder_right = calc_entropy(r_ds) * (r_ds.shape[0]/len(y))
+                
                 tmp_IG = entropy - (remainder_left + remainder_right)
+                
+                # print(tmp_IG, entropy, remainder_left, remainder_right)
+                assert tmp_IG >= 0
+                
                 if tmp_IG > max_IG:
                     max_IG = tmp_IG
                     attribute = router
                     value = mid
+                    split_index = row+1
             
-    # x_tmp = x[:,attribute]<value
-    # print(x_tmp)
-                
-    split={"l_dataset_x":x[x[:,attribute]<value], "l_dataset_y":y[x[:,attribute]<value],"r_dataset_x":x[x[:,attribute]>value],"r_dataset_y":y[x[:,attribute]>value],"value": value,"attribute":attribute}
+    sorted_ds = x[np.argsort(x[:, attribute])]
+    sorted_labels = y[np.argsort(x[:, attribute])]
+    
+    split={"l_dataset_x":sorted_ds[:split_index], "l_dataset_y":sorted_labels[:split_index],"r_dataset_x":sorted_ds[split_index:],"r_dataset_y":sorted_labels[split_index:],"value": value,"attribute":attribute}
     # print(split)
     return split
 
@@ -180,7 +192,7 @@ def decision_tree_learning(x,y,depth=0):
     """
     # np.concatenate()
     # print(len(np.unique(y)))
-    # print(y)
+    print(y)
     # print(x.shape)
     if np.unique(y).shape[0] == 1:
         # building the leaf
@@ -189,7 +201,7 @@ def decision_tree_learning(x,y,depth=0):
         split = find_split(x, y)
         ret_l_depth = depth
         ret_r_depth = depth
-        print(depth)
+        # print(depth)
         node = {}
         # if np.shape(split["l_dataset_x"])[0] and np.shape(split["l_dataset_y"])[0] and np.shape(split["r_dataset_x"])[0] and np.shape(split["r_dataset_y"])[0]:
                 # if np.shape(split["l_dataset_x"])[0]:
@@ -210,22 +222,20 @@ def decision_tree_learning(x,y,depth=0):
         # return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Decision": None,"leaf":True}, depth) 
 
 
-dx,dy=get_data("./data/wifi_db/clean_dataset.txt")                     
-root,maxD = decision_tree_learning(dx,dy)
+
       
 def print_tree(root, level=0, prefix="Root: "):
-        if root['leaf']:
-            ret = "\t" * level + prefix +'Final Decision: ' + str(root["Final_Decision"]) + "\n"
-        else: ret = "\t" * level + prefix + " split val : " + str(root['split_value']) + " split attribute : " + str(root['split_attribute'])  + "\n"
-        if root['l_branch']:
+        if 'leaf' in root:
+            if root['leaf']:
+                ret = "\t" * level + prefix +'Final Decision: ' + str(root["Final_Decision"]) + "\n"
+                return ret
+        ret = "\t" * level + prefix + " split val : " + str(root['split_value']) + " split attribute : " + str(root['split_attribute'])  + "\n"
+        if 'l_branch'in root:
             ret += print_tree(root['l_branch'], level + 1, "L--- ")
-        if root['r_branch']:
+        if 'r_branch' in root:
             ret += print_tree(root['r_branch'], level + 1, "R--- ")
         return ret
         
-#tree=print_tree(root)
-#print(tree)
-
 #function to recursively plot the decision tree
 def plot_decision_tree(node, parent_pos, branch, depth=0):
     if node is None:
@@ -261,14 +271,37 @@ def plot_decision_tree(node, parent_pos, branch, depth=0):
         plot_decision_tree(node['r_branch'], (x, y), 1, depth + 1)
 
 # Create a blank canvas
-plt.figure(figsize=(15,10))
-plt.axis('off')
+# plt.figure(figsize=(15,10))
+# plt.axis('off')
 
 # Start plotting the decision tree from the root node
-root_node = root
-plot_decision_tree(root_node, (0, 0), 0)
+# root_node = root
+# plot_decision_tree(root_node, (0, 0), 0)
 
-# Show the decision tree
-plt.tight_layout()
-plt.show()
+# # Show the decision tree
+# plt.tight_layout()
+# plt.show()
 
+
+def main():
+
+
+    dx,dy=get_data("./data/wifi_db/clean_dataset.txt")                     
+    
+
+    root,maxD = decision_tree_learning(dx,dy)
+
+    tree=print_tree(root)
+    print(tree)
+    plot_decision_tree(root, (0, 0), 0);
+    plt.tight_layout()
+    plt.show()
+    
+    
+
+
+
+
+if __name__ == '__main__':
+    main()
+    
