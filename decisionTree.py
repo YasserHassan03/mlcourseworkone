@@ -294,22 +294,45 @@ plt.axis('off')
 # # Show the decision tree
 # plt.tight_layout()
 # plt.show()
+def predict_room(test_attributes,node):
+    if node['leaf']:
+        return node['Final_Decision']
+    else:
+        if (test_attributes[(node['split_attribute'])] < node["split_value"]):
+            return predict_room(test_attributes, node['l_branch'])
+        else:
+            return predict_room(test_attributes, node['r_branch'])
+
+def predict_rooms(test_data, node):
+    #                          function,    axis=x, data, predict_room argument
+    return np.apply_along_axis(predict_room, 1, test_data, node)
+
+def calc_accuracy(room_preds, actual_rooms):
+    correct=0
+    total=len(room_preds)
+    for i in range(len(room_preds)):
+        if room_preds[i]==actual_rooms[i]:
+            correct+=1
+    return (correct/total)*100
 
 
 def main():
 
 
-    dx,dy=get_data("./data/wifi_db/clean_dataset.txt")                     
+    x_data,y_data=get_data("./data/wifi_db/clean_dataset.txt")                     
     
+    x_train,x_test, y_train,y_test= split_dataset(x_data,y_data,0.9)
+    root,maxD = decision_tree_learning(x_train,y_train)
+    print("prediction")
+    room_preds=(predict_rooms(x_test,root))
+    print("accuracy=" +str(calc_accuracy(room_preds,y_test)))
 
-    root,maxD = decision_tree_learning(dx,dy)
+    #tree=print_tree(root)
+    #print(tree)
+    #plot_decision_tree(root, (0, 0), 0)
+    #plt.tight_layout()
+    #plt.show()
 
-    tree=print_tree(root)
-    print(tree)
-    plot_decision_tree(root, (0, 0), 0)
-    plt.tight_layout()
-    plt.show()
-    
     
 
 
