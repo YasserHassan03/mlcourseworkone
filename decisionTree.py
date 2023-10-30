@@ -1,4 +1,5 @@
 import numpy as np
+import decimal as dec
 from numpy.random import default_rng
 from treelib import Node, Tree
 import matplotlib
@@ -35,7 +36,7 @@ def get_data(path):
     return (x,y)
 
 
-def split_dataset(x, y, test_proportion, random_generator=default_rng()):
+def split_dataset_2(x, y, folds = 10,  random_generator=default_rng()):
     """ Split dataset into training and test sets, according to the given 
         test set proportion.
     
@@ -53,7 +54,7 @@ def split_dataset(x, y, test_proportion, random_generator=default_rng()):
                - y_train (np.ndarray): Training labels, shape (N_train, )
                - y_test (np.ndarray): Test labels, shape (N_train, )
     """
-
+    test_proportion=1/folds
     shuffled_indices = random_generator.permutation(len(x))
     n_test = round(len(x) * test_proportion)
     n_train = len(x) - n_test
@@ -62,6 +63,40 @@ def split_dataset(x, y, test_proportion, random_generator=default_rng()):
     x_test = x[shuffled_indices[n_train:]]
     y_test = y[shuffled_indices[n_train:]]
     return (x_train, x_test, y_train, y_test)
+
+def split_dataset(x, y, folds = 10,  random_generator=default_rng()):
+    """ Split dataset into training and test sets, according to the given 
+        test set proportion.
+    
+    Args:
+        x (np.ndarray): Instances, numpy array with shape (N,K)
+        y (np.ndarray): Class labels, numpy array with shape (N,)
+        test_proprotion (float): the desired proportion of test examples 
+                                 (0.0-1.0)
+        random_generator (np.random.Generator): A random generator
+
+    Returns:
+        tuple: returns a tuple of (x_train, x_test, y_train, y_test) 
+               - x_train (np.ndarray): Training instances shape (N_train, K)
+               - x_test (np.ndarray): Test instances shape (N_test, K)
+               - y_train (np.ndarray): Training labels, shape (N_train, )
+               - y_test (np.ndarray): Test labels, shape (N_train, )
+    """
+    test_proportion=1/folds
+    x_data=[]
+    y_data=[]
+    shuffled_indices = random_generator.permutation(len(x))
+    index_of_fold = round(len(x) * test_proportion)
+    
+    x_shuffled=x[shuffled_indices]
+    y_shuffled=y[shuffled_indices]
+
+    for i in range(folds):
+        x_data.append(x_shuffled[i*index_of_fold:(i+1)*index_of_fold])
+        y_data.append(y_shuffled[i*index_of_fold:(i+1)*index_of_fold])
+    print(x_data, y_data)
+    return (x_data,y_data)
+    
 
 # change data to x,y
 def calc_entropy(y):
@@ -79,6 +114,7 @@ def calc_entropy(y):
     entropy_array=[] 
     distinct_rooms, counts = np.unique(y, return_counts=True)
     entropy_array=[weighted_info_per_symbol(count,num_samples) for count in counts]
+
     return sum(entropy_array)
 
 def weighted_info_per_symbol(numerator,denominator):
@@ -154,9 +190,11 @@ def find_split(x, y):
                 remainder_left = calc_entropy(l_ds) * (l_ds.shape[0]/len(y))
                 remainder_right = calc_entropy(r_ds) * (r_ds.shape[0]/len(y))
                 
-                tmp_IG = entropy - (remainder_left + remainder_right)
-                
-                # print(tmp_IG, entropy, remainder_left, remainder_right)
+                tmp_IG = round(entropy, 10) - round(remainder_left + remainder_right, 10)
+
+                if tmp_IG < 0:
+                    print(tmp_IG, round(remainder_left + remainder_right, 13), round(entropy, 13))
+
                 assert tmp_IG >= 0
                 
                 if tmp_IG > max_IG:
@@ -192,7 +230,7 @@ def decision_tree_learning(x,y,depth=0):
     """
     # np.concatenate()
     # print(len(np.unique(y)))
-    print(y)
+    #print(y)
     # print(x.shape)
     if np.unique(y).shape[0] == 1:
         # building the leaf
@@ -307,25 +345,77 @@ def predict_rooms(test_data, node):
     #                          function,    axis=x, data, predict_room argument
     return np.apply_along_axis(predict_room, 1, test_data, node)
 
-def calc_accuracy(room_preds, actual_rooms):
+#globally scoped
+matrix = np.array([[0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]])
+
+def populate_matrix(room_preds, actual_rooms):
     correct=0
     total=len(room_preds)
     for i in range(len(room_preds)):
         if room_preds[i]==actual_rooms[i]:
             correct+=1
-    return (correct/total)*100
+        matrix[int(actual_rooms[i]-1)][int(room_preds[i]-1)] += 1
+    
+    return
+
+def cross_validation(x, y, folds=10):
+      
+    x_folds, y_folds= split_dataset(x,y)
+    #print(len(x_folds),len(y_folds))
+    accuracy_array = []
+    for i in range(folds):
+        x_train = np.concatenate(x_folds[:i] + x_folds[i+1:],axis=0)
+
+        y_train = np.concatenate(y_folds[:i] + y_folds[i+1:], axis=0)
+
+        x_test = x_folds[i]
+
+        y_test = y_folds[i]
+        
+        root,maxD = decision_tree_learning(x_train,y_train)
+        room_preds=(predict_rooms(x_test,root))
+        accuracy = populate_matrix(room_preds,y_test)
+
+def accuracy():
+    for i in matrix:
+        print(f'{i}')
+    return (np.trace(matrix)/matrix.sum())*100
+
+def precision_recall():
+    true_positives=np.diag(matrix)
+    precision_per_class=[]
+    recall_per_class=[]
+    for i in range(len(true_positives)):
+        precision_per_class.append(true_positives[i]/np.sum(matrix,0)[i])
+        recall_per_class.append(true_positives[i]/np.sum(matrix,1)[i])
+    return (precision_per_class, recall_per_class)
+
+def F1(precision_recall):
+    precision_array,recall_array = precision_recall
+    print(precision_recall)
+    f1_per_class=[]
+    for i in range(len(precision_array)):
+        f1_per_class.append(2*precision_array[i]*recall_array[i]/(precision_array[i]+recall_array[i]))
+    return(f1_per_class)
+    # precision = []
+    # for i in range(len(matrix)):
+    #     precision.append(matrix[i][i]/sum(matrix[i]))
+    # print(precision)
 
 
 def main():
-
-
     x_data,y_data=get_data("./data/wifi_db/clean_dataset.txt")                     
-    
-    x_train,x_test, y_train,y_test= split_dataset(x_data,y_data,0.9)
-    root,maxD = decision_tree_learning(x_train,y_train)
-    print("prediction")
-    room_preds=(predict_rooms(x_test,root))
-    print("accuracy=" +str(calc_accuracy(room_preds,y_test)))
+    cross_validation(x_data,y_data)
+    print(accuracy())
+    print(F1(precision_recall()))
+    #x_folds,y_folds=split_dataset(x_data,y_data)
+    #root,maxD = decision_tree_learning(x_folds[0],y_folds[0])
+    #print("prediction")
+    #room_preds=(predict_rooms(x_folds[3],root))
+    #print("accuracy=" +str(calc_accuracy(room_preds,y_folds[3])))
 
     #tree=print_tree(root)
     #print(tree)
