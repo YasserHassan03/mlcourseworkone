@@ -1,7 +1,6 @@
 import numpy as np
 import decimal as dec
 from numpy.random import default_rng
-from treelib import Node, Tree
 import matplotlib
 import matplotlib.pyplot as plt
 #function to read data
