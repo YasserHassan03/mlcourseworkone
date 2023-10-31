@@ -36,69 +36,39 @@ def get_data(path):
     return (x,y)
 
 
-def split_dataset_2(x, y, folds = 10,  random_generator=default_rng()):
-    """ Split dataset into training and test sets, according to the given 
-        test set proportion.
-    
-    Args:
-        x (np.ndarray): Instances, numpy array with shape (N,K)
-        y (np.ndarray): Class labels, numpy array with shape (N,)
-        test_proprotion (float): the desired proportion of test examples 
-                                 (0.0-1.0)
-        random_generator (np.random.Generator): A random generator
-
-    Returns:
-        tuple: returns a tuple of (x_train, x_test, y_train, y_test) 
-               - x_train (np.ndarray): Training instances shape (N_train, K)
-               - x_test (np.ndarray): Test instances shape (N_test, K)
-               - y_train (np.ndarray): Training labels, shape (N_train, )
-               - y_test (np.ndarray): Test labels, shape (N_train, )
-    """
-    test_proportion=1/folds
-    shuffled_indices = random_generator.permutation(len(x))
-    n_test = round(len(x) * test_proportion)
-    n_train = len(x) - n_test
-    x_train = x[shuffled_indices[:n_train]]
-    y_train = y[shuffled_indices[:n_train]]
-    x_test = x[shuffled_indices[n_train:]]
-    y_test = y[shuffled_indices[n_train:]]
-    return (x_train, x_test, y_train, y_test)
 
 def split_dataset(x, y, folds = 10,  random_generator=default_rng()):
-    """ Split dataset into training and test sets, according to the given 
-        test set proportion.
-    
+    """ 
+    shuffles the data and splits into 10 folds
     Args:
         x (np.ndarray): Instances, numpy array with shape (N,K)
         y (np.ndarray): Class labels, numpy array with shape (N,)
-        test_proprotion (float): the desired proportion of test examples 
-                                 (0.0-1.0)
-        random_generator (np.random.Generator): A random generator
-
+        folds (int): number of folds
+        random_generator (np.random.Generator): random generator object
     Returns:
-        tuple: returns a tuple of (x_train, x_test, y_train, y_test) 
-               - x_train (np.ndarray): Training instances shape (N_train, K)
-               - x_test (np.ndarray): Test instances shape (N_test, K)
-               - y_train (np.ndarray): Training labels, shape (N_train, )
-               - y_test (np.ndarray): Test labels, shape (N_train, )
+        tuple: returns a tuple of (x_data, y_data), each being a numpy array. 
+                - x_data is a list of numpy arrays with shape (N/10, K), 
+                    where N is the number of instances
+                    K is the number of features/attributes
+                - y_data is a list of numpy arrays with shape (N/10, ), and should be integers from 1 to 4
+                    representing the room number
+    
     """
     test_proportion=1/folds
     x_data=[]
     y_data=[]
     shuffled_indices = random_generator.permutation(len(x))
-    index_of_fold = round(len(x) * test_proportion)
+    length_of_fold = round(len(x) * test_proportion)
     
     x_shuffled=x[shuffled_indices]
     y_shuffled=y[shuffled_indices]
 
     for i in range(folds):
-        x_data.append(x_shuffled[i*index_of_fold:(i+1)*index_of_fold])
-        y_data.append(y_shuffled[i*index_of_fold:(i+1)*index_of_fold])
-    print(x_data, y_data)
+        x_data.append(x_shuffled[i*length_of_fold:(i+1)*length_of_fold])
+        y_data.append(y_shuffled[i*length_of_fold:(i+1)*length_of_fold])
+    # print(x_data, y_data)
     return (x_data,y_data)
     
-
-# change data to x,y
 def calc_entropy(y):
     """ Calculates the entropy of the data set given
     
@@ -136,43 +106,13 @@ def find_split(x, y):
         r_dataset_x (np.array): Class labels, numpy array with shape (N-M, )
         value (int): splitting value of continuos 
         attribute (int):
-    """
-
-    """"
-    ___________________________________
-    | x1 | x2 | x3 | x4 | x5 | x6 | x7 |
-    ___________________________________
-    | . | .  | .  | .  |  . | .  |  . |
-    ___________________________________ 
-    
-    Loop through each column of array x. Every column is a different attribute. Should loop 7 times for every router
-        Sort rows of column
-            For each sorted column, loop through every row starting from 1 to n-1
-                Compute information gain for current data split
-                    If greater than current information gain
-                        Update index, attribute and max information gain variables
-                    Otherwise
-                        Continue 
-    Return (attribute, index/value)
-    
-    
-    1) calc entropy of x,y
-    2) repeat for x= 1...7
-    3) extract col x
-    4) sort col x
-    5) repeat for i = 1...1999
-    6) calc entropy for x[col_x<col_x[i]] , y [col_x<col_x[i]]
-    7) calc IG if its greater than current IG update attribute (x) and value col_x[i]
-    
-    
-    """
-    
+    """    
     max_IG = 0
     entropy=calc_entropy(y)
     attribute = 0 
     value = 0 
     split_index = 0
-    
+    assert np.shape(x)[1]==7
     for router in range(7):
         col_x = x[:, router]
         s_col_x = x[x[:, router].argsort()][:,router]
@@ -180,34 +120,21 @@ def find_split(x, y):
         for row in range(s_y.shape[0]-1):
             if s_y[row] != s_y[row+1]:
                 mid = (s_col_x[row] + s_col_x[row+1]) / 2
-                
                 l_ds = s_y[:row+1]
-                r_ds = s_y[row+1:]
-                
-                
+                r_ds = s_y[row+1:]    
                 assert r_ds.shape[0] + l_ds.shape[0] == x.shape[0]
-                
                 remainder_left = calc_entropy(l_ds) * (l_ds.shape[0]/len(y))
                 remainder_right = calc_entropy(r_ds) * (r_ds.shape[0]/len(y))
-                
                 tmp_IG = round(entropy, 10) - round(remainder_left + remainder_right, 10)
-
-                if tmp_IG < 0:
-                    print(tmp_IG, round(remainder_left + remainder_right, 13), round(entropy, 13))
-
-                assert tmp_IG >= 0
-                
+                assert tmp_IG >= 0    
                 if tmp_IG > max_IG:
                     max_IG = tmp_IG
                     attribute = router
                     value = mid
                     split_index = row+1
-            
     sorted_ds = x[np.argsort(x[:, attribute])]
     sorted_labels = y[np.argsort(x[:, attribute])]
-    
     split={"l_dataset_x":sorted_ds[:split_index], "l_dataset_y":sorted_labels[:split_index],"r_dataset_x":sorted_ds[split_index:],"r_dataset_y":sorted_labels[split_index:],"value": value,"attribute":attribute}
-    # print(split)
     return split
 
 def decision_tree_learning(x,y,depth=0):
@@ -228,38 +155,24 @@ def decision_tree_learning(x,y,depth=0):
         
         depth (int): max depth of the decision tree
     """
-    # np.concatenate()
-    # print(len(np.unique(y)))
-    #print(y)
-    # print(x.shape)
     if np.unique(y).shape[0] == 1:
-        # building the leaf
         return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Decision": np.unique(y)[0],"leaf":True}, depth)
     else:
         split = find_split(x, y)
         ret_l_depth = depth
         ret_r_depth = depth
-        # print(depth)
         node = {}
-        # if np.shape(split["l_dataset_x"])[0] and np.shape(split["l_dataset_y"])[0] and np.shape(split["r_dataset_x"])[0] and np.shape(split["r_dataset_y"])[0]:
-                # if np.shape(split["l_dataset_x"])[0]:
         if (split["l_dataset_x"].shape[0] > 0):
             node["l_branch"], ret_l_depth = decision_tree_learning(split["l_dataset_x"], split["l_dataset_y"], depth+1)
-            # if np.shape(split["r_dataset_x"])[0]:
         else:
             node["l_branch"]=None
         if (split["r_dataset_x"].shape[0] > 0):
             node["r_branch"], ret_r_depth = decision_tree_learning(split["r_dataset_x"], split["r_dataset_y"], depth+1)
         else:
             node["r_branch"]=None
-            
         node["split_value"], node["split_attribute"] = split["value"], split["attribute"]            
         node["leaf"] = False
-        
         return(node, max(ret_l_depth,ret_r_depth))
-        # return ({"l_branch":None , "r_branch":None , "split_value":None , "split_attribute":None, "Final_Decision": None,"leaf":True}, depth) 
-
-
 
       
 def print_tree(root, level=0, prefix="Root: "):
@@ -276,63 +189,51 @@ def print_tree(root, level=0, prefix="Root: "):
         
 #function to recursively plot the decision tree
 def plot_decision_tree(node, parent_pos, branch, depth=0):
+    """ Plots decision tree on matlab canvas recursively
+    Args:
+        node (dictionary): contains left_node,right_node,split_feature,split_value
+        parent_pos (tuple): contains x,y coordinates of parent node
+        branch (int): -1 for left branch, 1 for right branch
+    Returns:
+        None
+    """
     if node is None:
         return
-
-    # Calculate the position for this node
-    # Scale position offset for this data bit of a bodge
     scale=1000/(2**depth)
-    #if depth>4:
-    #    scale=1/1.8**depth 
-    #if depth>9:
-     #   scale=1/1.3**depth
- 
     x = parent_pos[0] + branch * scale
     if depth==0:
         y = parent_pos[1]
     else:
         y = parent_pos[1]-1
-
-    offset=0
     if branch == -1:
-       # while x+offset>(parent_pos[0]-branch*scale):
-           #x-=1
         plt.plot([parent_pos[0], x], [parent_pos[1], y], 'b-', zorder=1)
     else:
-        #while x-offset<(parent_pos[0]-branch*scale):
-           # x+=1
         plt.plot([parent_pos[0], x], [parent_pos[1], y], 'r-', zorder=1)
 
     if node['leaf']:
-        # If leaf node is true
         plt.scatter(x, y, s=200, c='green', edgecolor='black', zorder=2)
         plt.text(x, y, str(node['Final_Decision']), ha='center', va='center', fontsize=8, color='white')
     else:
-        # Plot the decision node and attribute split
         plt.scatter(x, y, color='white')
         plt.text(x, y, ('x' +str(node['split_attribute'])+'<'+str(node['split_value'])), ha='center', va='center', fontsize=5, color='black',bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
-
-    # Plot the connecting line from parent to this node
-
-    # Recursively plot left and right branches
     if 'l_branch' in node:
         plot_decision_tree(node['l_branch'], (x, y), -1, depth + 1)
     if 'r_branch' in node:
         plot_decision_tree(node['r_branch'], (x, y), 1, depth + 1)
     print('x' +str(node['split_attribute'])+'<'+str(node['split_value']))
     print(x,y)
-# Create a blank canvas
-# plt.figure(figsize=(15,10))
 plt.axis('off')
 
-# Start plotting the decision tree from the root node
-# root_node = root
-# plot_decision_tree(root_node, (0, 0), 0)
-
-# # Show the decision tree
-# plt.tight_layout()
-# plt.show()
 def predict_room(test_attributes,node):
+    '''
+    predict the room number for a given test data by traversing the decision tree
+    Args:
+        test_attributes (np.ndarray): Instances, numpy array with shape (N,K)
+        node (dictionary): contains left_node,right_node,split_feature,split_value
+    returns:
+        room number (int)
+    '''
+    
     if node['leaf']:
         return node['Final_Decision']
     else:
@@ -342,75 +243,103 @@ def predict_room(test_attributes,node):
             return predict_room(test_attributes, node['r_branch'])
 
 def predict_rooms(test_data, node):
-    #                          function,    axis=x, data, predict_room argument
+    '''
+    get predictions for all the test data
+    Args:
+        test_data (np.ndarray): Instances, numpy array with shape (N,K)
+        node (dictionary): contains left_node,right_node,split_feature,split_value
+    returns:    
+        np.ndarray: room number predictions for all the test data of shape (N, )
+    '''
     return np.apply_along_axis(predict_room, 1, test_data, node)
 
 #globally scoped
-matrix = np.array([[0, 0, 0, 0],
-          [0, 0, 0, 0],
-          [0, 0, 0, 0],
-          [0, 0, 0, 0]])
 
-def populate_matrix(room_preds, actual_rooms):
-    correct=0
-    total=len(room_preds)
+confusion_matrix = np.array([[0, 0, 0, 0],
+                   [0, 0, 0, 0],
+                   [0, 0, 0, 0],
+                   [0, 0, 0, 0]])
+
+def populate_matrix(room_preds, actual_rooms): 
+    '''
+    populates confusion matrix
+    Args:
+        room_preds (np.ndarray): room number predictions for all the test data of shape (N, )
+        actual_rooms (np.ndarray): Class labels, numpy array with shape (N,)
+    returns:
+        None
+    '''
     for i in range(len(room_preds)):
-        if room_preds[i]==actual_rooms[i]:
-            correct+=1
-        matrix[int(actual_rooms[i]-1)][int(room_preds[i]-1)] += 1
+        confusion_matrix[int(actual_rooms[i]-1)][int(room_preds[i]-1)] += 1
     
-    return
 
 def cross_validation(x, y, folds=10):
+    '''
+    splits the data into 10 folds and performs cross validation
+    Args:
+        x (np.ndarray): Instances, numpy array with shape (N,K)
+        y (np.ndarray): Class labels, numpy array with shape (N,)
+        folds (int): number of folds
+    returns:
+        None
+    '''
       
     x_folds, y_folds= split_dataset(x,y)
-    #print(len(x_folds),len(y_folds))
-    accuracy_array = []
     for i in range(folds):
         x_train = np.concatenate(x_folds[:i] + x_folds[i+1:],axis=0)
-
         y_train = np.concatenate(y_folds[:i] + y_folds[i+1:], axis=0)
-
         x_test = x_folds[i]
-
         y_test = y_folds[i]
-        
         root,maxD = decision_tree_learning(x_train,y_train)
-        room_preds=(predict_rooms(x_test,root))
-        accuracy = populate_matrix(room_preds,y_test)
+        room_preds=predict_rooms(x_test,root)
+        populate_matrix(room_preds,y_test)
 
 def accuracy():
-    for i in matrix:
-        print(f'{i}')
-    return (np.trace(matrix)/matrix.sum())*100
+    '''
+    Calculates accuracy of model from the confusion matric
+    Args:
+        None
+    Returns:
+        Accuracy
+    '''
+    return (np.trace(confusion_matrix)/confusion_matrix.sum())*100
 
 def precision_recall():
-    true_positives=np.diag(matrix)
+    '''
+    calculates the precision and the recall of the training data for each class from the confusion matrix
+    Args:
+        None
+    Return:
+        tuple of lists : (Precision for each class, Recall for each class)
+    '''
+    
+    true_positives=np.diag(confusion_matrix)
     precision_per_class=[]
     recall_per_class=[]
     for i in range(len(true_positives)):
-        precision_per_class.append(true_positives[i]/np.sum(matrix,0)[i])
-        recall_per_class.append(true_positives[i]/np.sum(matrix,1)[i])
-    return (precision_per_class, recall_per_class)
+        precision_per_class.append(true_positives[i]/np.sum(confusion_matrix,0)[i])
+        recall_per_class.append(true_positives[i]/np.sum(confusion_matrix,1)[i])
+    return (np.array(precision_per_class), np.array(recall_per_class))
 
-def F1(precision_recall):
-    precision_array,recall_array = precision_recall
-    print(precision_recall)
-    f1_per_class=[]
-    for i in range(len(precision_array)):
-        f1_per_class.append(2*precision_array[i]*recall_array[i]/(precision_array[i]+recall_array[i]))
+def F1(precision_array,recall_array):
+    '''
+    Calculates the F1 score for the dataset
+    Args:
+        precision_array (np.ndarray): Precision for K classes, numpy array with shape (K,)
+        recall_array (np.ndarray): Recall for K classes, numpy array with shape (K,)
+    Returns:
+            f1_per_class (np.ndarray): f1 score for K classes, numpy array with shape (K,)
+    '''  
+    f1_per_class = (2*precision_array*recall_array)/(precision_array+recall_array)
     return(f1_per_class)
-    # precision = []
-    # for i in range(len(matrix)):
-    #     precision.append(matrix[i][i]/sum(matrix[i]))
-    # print(precision)
 
 
 def main():
     x_data,y_data=get_data("./data/wifi_db/clean_dataset.txt")                     
     cross_validation(x_data,y_data)
     print(accuracy())
-    print(F1(precision_recall()))
+    precision_array,recall_array = precision_recall()
+    print(F1(precision_array,recall_array ))
     #x_folds,y_folds=split_dataset(x_data,y_data)
     #root,maxD = decision_tree_learning(x_folds[0],y_folds[0])
     #print("prediction")
