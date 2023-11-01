@@ -22,7 +22,7 @@ def get_data(path):
     for line in open(path):
         if line.strip() != '':
             row = line.strip().split()
-            #maybe something to make sure data is 8 elements long DONE
+            #something to make sure data is 8 elements long
             assert len(row)==8 , "Error : Input data does not have 8 elements"
             x_row = list(map(float,row[:-1]))
             x.append(x_row)
@@ -99,7 +99,7 @@ def find_split(x, y):
         l_dataset_y (np.array): Class labels, numpy array with shape (M, )
         r_dataset_x (np.array): Instances, numpy array with shape (N-M, K)
         r_dataset_x (np.array): Class labels, numpy array with shape (N-M, )
-        value (int): splitting value of continuos 
+        value (int): splitting value of continuous 
         attribute (int):
     """    
     max_IG = 0
@@ -194,13 +194,7 @@ def plot_decision_tree(node, parent_pos, branch, depth=0):
     """
     if node is None:
         return
-    scale=1000/(1.9**depth)
-    if depth>6:
-        scale=1000/(1.8**(depth-3))
-    if depth>10:
-        scale=1000/(1.7**(depth-3))
-    if depth>11:
-        scale=1000/(1.7**(depth-5))
+    scale=1/(2**depth)
     x = parent_pos[0] + branch * scale
     if depth==0:
         y = parent_pos[1]
@@ -333,7 +327,7 @@ def main():
     path="./data/wifi_db/clean_dataset.txt"
     x_data,y_data=get_data(path)                     
     cross_validation(x_data,y_data)
-    print("accuracy=", accuracy(), " for data from "+path)
+    print("accuracy=", accuracy(), "%"," for data from "+path)
     precision_array,recall_array = precision_recall()
     print("precision (room1,room2,room3,room4) = ",precision_array)
     print("recall (room1,room2,room3,room4) = " ,recall_array)
