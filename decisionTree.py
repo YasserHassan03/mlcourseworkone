@@ -199,7 +199,13 @@ def plot_decision_tree(node, parent_pos, branch, depth=0):
     """
     if node is None:
         return
-    scale=1000/(2**depth)
+    scale=1000/(1.9**depth)
+    if depth>6:
+        scale=1000/(1.8**(depth-3))
+    if depth>10:
+        scale=1000/(1.7**(depth-3))
+    if depth>11:
+        scale=1000/(1.7**(depth-5))
     x = parent_pos[0] + branch * scale
     if depth==0:
         y = parent_pos[1]
@@ -211,8 +217,8 @@ def plot_decision_tree(node, parent_pos, branch, depth=0):
         plt.plot([parent_pos[0], x], [parent_pos[1], y], 'r-', zorder=1)
 
     if node['leaf']:
-        plt.scatter(x, y, s=200, c='green', edgecolor='black', zorder=2)
-        plt.text(x, y, str(node['Final_Decision']), ha='center', va='center', fontsize=8, color='white')
+        plt.scatter(x, y, s=120, c='green', edgecolor='black', zorder=2)
+        plt.text(x, y, str(int(node['Final_Decision'])), ha='center', va='center', fontsize=10, color='white')
     else:
         plt.scatter(x, y, color='white')
         plt.text(x, y, ('x' +str(node['split_attribute'])+'<'+str(node['split_value'])), ha='center', va='center', fontsize=5, color='black',bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
@@ -220,9 +226,10 @@ def plot_decision_tree(node, parent_pos, branch, depth=0):
         plot_decision_tree(node['l_branch'], (x, y), -1, depth + 1)
     if 'r_branch' in node:
         plot_decision_tree(node['r_branch'], (x, y), 1, depth + 1)
-    print('x' +str(node['split_attribute'])+'<'+str(node['split_value']))
-    print(x,y)
-plt.axis('off')
+    #print('x' +str(node['split_attribute'])+'<'+str(node['split_value']))
+    #print(x,y)
+    #print(depth)
+
 
 def predict_room(test_attributes,node):
     '''
@@ -255,10 +262,7 @@ def predict_rooms(test_data, node):
 
 #globally scoped
 
-confusion_matrix = np.array([[0, 0, 0, 0],
-                   [0, 0, 0, 0],
-                   [0, 0, 0, 0],
-                   [0, 0, 0, 0]])
+confusion_matrix = np.zeros((4,4))
 
 def populate_matrix(room_preds, actual_rooms): 
     '''
@@ -335,24 +339,23 @@ def F1(precision_array,recall_array):
 
 
 def main():
-    x_data,y_data=get_data("./data/wifi_db/clean_dataset.txt")                     
+    x_data,y_data=get_data("./data/wifi_db/noisy_dataset.txt")                     
     cross_validation(x_data,y_data)
     print(accuracy())
     precision_array,recall_array = precision_recall()
+    print(precision_array,recall_array)
     print(F1(precision_array,recall_array ))
-    #x_folds,y_folds=split_dataset(x_data,y_data)
-    #root,maxD = decision_tree_learning(x_folds[0],y_folds[0])
+    root,maxD = decision_tree_learning(x_data,y_data) 
+    print(confusion_matrix)
     #print("prediction")
     #room_preds=(predict_rooms(x_folds[3],root))
     #print("accuracy=" +str(calc_accuracy(room_preds,y_folds[3])))
 
     #tree=print_tree(root)
-    #print(tree)
-    #plot_decision_tree(root, (0, 0), 0)
-    #plt.tight_layout()
-    #plt.show()
-
-    
+    plot_decision_tree(root, (0, 0), 0)
+    plt.tight_layout()
+    plt.axis('off')
+    plt.show()
 
 
 
