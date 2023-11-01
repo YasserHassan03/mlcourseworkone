@@ -1,8 +1,6 @@
 import numpy as np
 from numpy.random import default_rng
-import matplotlib
 import matplotlib.pyplot as plt
-#function to read data
 
 def get_data(path):
     """ Read in the dataset from the specified filepath
@@ -64,7 +62,6 @@ def split_dataset(x, y, folds = 10,  random_generator=default_rng()):
     for i in range(folds):
         x_data.append(x_shuffled[i*length_of_fold:(i+1)*length_of_fold])
         y_data.append(y_shuffled[i*length_of_fold:(i+1)*length_of_fold])
-    # print(x_data, y_data)
     return (x_data,y_data)
     
 def calc_entropy(y):
@@ -185,7 +182,7 @@ def print_tree(root, level=0, prefix="Root: "):
             ret += print_tree(root['r_branch'], level + 1, "R--- ")
         return ret
         
-#function to recursively plot the decision tree
+
 def plot_decision_tree(node, parent_pos, branch, depth=0):
     """ Plots decision tree on matlab canvas recursively
     Args:
@@ -224,9 +221,7 @@ def plot_decision_tree(node, parent_pos, branch, depth=0):
         plot_decision_tree(node['l_branch'], (x, y), -1, depth + 1)
     if 'r_branch' in node:
         plot_decision_tree(node['r_branch'], (x, y), 1, depth + 1)
-    #print('x' +str(node['split_attribute'])+'<'+str(node['split_value']))
-    #print(x,y)
-    #print(depth)
+
 
 
 def predict_room(test_attributes,node):
@@ -257,8 +252,6 @@ def predict_rooms(test_data, node):
         np.ndarray: room number predictions for all the test data of shape (N, )
     '''
     return np.apply_along_axis(predict_room, 1, test_data, node)
-
-#globally scoped
 
 confusion_matrix = np.zeros((4,4))
 
@@ -342,8 +335,8 @@ def main():
     cross_validation(x_data,y_data)
     print("accuracy=", accuracy(), " for data from "+path)
     precision_array,recall_array = precision_recall()
-    print("precision (room1,room2,room3,room4) =",precision_array)
-    print("recall (room1,room2,room3,room4) =" ,recall_array)
+    print("precision (room1,room2,room3,room4) = ",precision_array)
+    print("recall (room1,room2,room3,room4) = " ,recall_array)
     print("F1 (room1,room2,room3,room4) = ", F1(precision_array,recall_array ))
     print("confusion matrix =" +'\n',confusion_matrix)
     fullroot,maxD = decision_tree_learning(x_data,y_data) 
