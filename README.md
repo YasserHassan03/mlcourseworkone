@@ -9,12 +9,12 @@ source my_venv/bin/activate
 pip install -r data/requirements.txt
 ```
 
-At this point go to line 333 of `[decisionTree.py](http://decisionTree.py)`  and put the file path you wish to test then Run
+At this point go to line 333 of `decisionTree.py`  and put the file path you wish to test then Run
 
  
 
 ```bash
-python3 [decisionTree.py](http://decisionTree.py)
+python3 decisionTree.py
 ```
 
 You should get:
