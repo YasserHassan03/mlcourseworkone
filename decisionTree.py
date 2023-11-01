@@ -337,20 +337,17 @@ def F1(precision_array,recall_array):
 
 
 def main():
-    x_data,y_data=get_data("./data/wifi_db/noisy_dataset.txt")                     
+    path="./data/wifi_db/clean_dataset.txt"
+    x_data,y_data=get_data(path)                     
     cross_validation(x_data,y_data)
-    print(accuracy())
+    print("accuracy=", accuracy(), " for data from "+path)
     precision_array,recall_array = precision_recall()
-    print(precision_array,recall_array)
-    print(F1(precision_array,recall_array ))
-    root,maxD = decision_tree_learning(x_data,y_data) 
-    print(confusion_matrix)
-    #print("prediction")
-    #room_preds=(predict_rooms(x_folds[3],root))
-    #print("accuracy=" +str(calc_accuracy(room_preds,y_folds[3])))
-
-    #tree=print_tree(root)
-    plot_decision_tree(root, (0, 0), 0)
+    print("precision (room1,room2,room3,room4) =",precision_array)
+    print("recall (room1,room2,room3,room4) =" ,recall_array)
+    print("F1 (room1,room2,room3,room4) = ", F1(precision_array,recall_array ))
+    print("confusion matrix =" +'\n',confusion_matrix)
+    fullroot,maxD = decision_tree_learning(x_data,y_data) 
+    plot_decision_tree(fullroot, (0, 0), 0)
     plt.tight_layout()
     plt.axis('off')
     plt.show()
